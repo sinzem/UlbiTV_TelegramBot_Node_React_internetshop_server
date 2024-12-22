@@ -1,9 +1,15 @@
 require('dotenv').config();
+const express = require("express");
+const cors = require("cors");
 const TGBot = require("node-telegram-bot-api");
 
 const token = process.env.TG_TOKEN;
 
 const bot = new TGBot(token, {polling: true});
+const app = express();
+
+app.use(express.json());
+app.use(cors());
 
 const webAppUrl = "https://admirable-lolly-8888b2.netlify.app"; /* (cвое реакт-приложение) */
 
@@ -52,7 +58,7 @@ bot.on("message", async (msg) => { /* (реагируем на входящее 
 
                 setTimeout(async () => {
                     await bot.sendMessage(chatId, "You can get all the information in this chat");
-                })
+                }, 3000)
             } catch (e) {
                 console.log(e);
             }
@@ -61,3 +67,33 @@ bot.on("message", async (msg) => { /* (реагируем на входящее 
 // -----------------------------------------
     // Третий вид кнопки - /setmenubutton  - встраивается в панель возле строки ввода - в botfather пишем /setmenubutton, выдаст выбор доступных ботов(моих), выбираем нужный, в строку ввода вносим адрес стороннего приложения для перехода, после отправки вводим текст для кнопки, после отправки добавится через несколько секунд
 })
+
+app.post("/web-data", async (req,res) => {
+    const {queryId, products, totalPrice} = req.body;
+
+    try {
+        await bot.answerWebAppQuery(queryId, {
+            type: "article",
+            id: queryId,
+            title: "Successful purchase",
+            input_message_content: {
+                message_text: `Congratulations on your purchase. You purchased an item worth ${totalPrice}`
+            }
+        })
+        return res.status(200).json({});
+    } catch (e) {
+        await bot.answerWebAppQuery(queryId, {
+            type: "article",
+            id: queryId,
+            title: "Failed to purchase item",
+            input_message_content: {
+                message_text: "Failed to purchase item"
+            }
+        })
+        return res.status(500).json({});
+    }
+})
+
+const PORT = 8000;
+
+app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
